@@ -1,0 +1,55 @@
+version: "3"
+
+services:
+  postgres:
+    container_name: backend_postgres
+    image: postgres:alpine
+    environment:
+      - POSTGRES_DB=ihome
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
+  app:
+    build:
+      context: ./build
+      dockerfile: Dockerfile
+    ports:
+      - 80:80
+
+  mqtt:
+    image: eclipse-mosquitto
+    volumes:
+      # - ./data/mqtt/config:/mosquitto/config
+      - ./data/mqtt/data:/mosquitto/data
+      - ./data/mqtt/logs:/mosquitto/log
+    ports:
+      - 1883:1883
+
+  influx:
+    image: influxdb
+    volumes:
+      - ./data/infuxdb:/var/lib/influxdb
+    ports:
+      - 8086:8086
+
+  ihomeback:
+    build:
+      context: ./ihomeback
+      dockerfile: ./Dockerfile
+    depends_on:
+      - influx
+      - mqtt
+    ports:
+      - 8080:5000
+
+  datahandler:
+    build:
+      context: ./datahandler
+      dockerfile: ./Dockerfile
+    depends_on:
+      - influx
+      - mqtt
